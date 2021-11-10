@@ -168,7 +168,7 @@ void wsprnetAPI::login() {
   size_t XCSRFTokenSize = strlen(token) + 128;
   XCSRFToken = reinterpret_cast<char *>(malloc(XCSRFTokenSize));
   memset(XCSRFToken, 0, XCSRFTokenSize);
-  snprintf(XCSRFToken, XCSRFTokenSize, "X-CSRF-Token %s", token);
+  snprintf(XCSRFToken, XCSRFTokenSize, "X-CSRF-Token: %s", token);
   fprintf(stderr, "X-CSRF-Token construction: %s\n", XCSRFToken);
   curl_slist_free_all(list);
   curl_easy_cleanup(sendPost);
@@ -461,16 +461,13 @@ int main(int argc, char *argv[]) {
   }
 
   wsprnet.login();
-  JSON * loginReplyMessage = new(JSON);
-  loginReplyMessage->parse(payload);
   wsprnet.queryPaths("band=14&callsign=kg5yje&minutes=60&exclude_special=0");
   wsprnet.queryStatus("band=14&callsign=kg5yje&minutes=60&exclude_special=0");
   wsprnet.querySpots("band=14&reporter=kg5yje&minutes=60&exclude_special=0");
-  JSON * queryReplyMessage = new(JSON);
-  queryReplyMessage->parse(payload);
   wsprnet.logout();
   JSON * logoutReplyMessage = new(JSON);
   logoutReplyMessage->parse(payload);
+  logoutReplyMessage->printStack();
 
   return 0;
 }
