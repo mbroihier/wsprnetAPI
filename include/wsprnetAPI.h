@@ -11,10 +11,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <curl/curl.h>
+#include <time.h>
 #include <iostream>
 #include <map>
 #include <string>
-#include <time.h>
 #include "../include/json.h"
 /* ---------------------------------------------------------------------- */
 #define STRINGIZER(arg)  #arg

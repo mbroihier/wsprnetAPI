@@ -60,7 +60,7 @@ class JSON {
   TOKENS tokens[TOKEN_STACK_SIZE];
   void * symbolTableReference[TOKEN_STACK_SIZE];
   size_t stackPointer = 0;
-  
+
   regex_t isAlpha;
   regex_t isNumber;
   regex_t isLCB;
@@ -73,7 +73,7 @@ class JSON {
   regex_t isWhite;
 
   char * workspace;
-  
+
   EQUIVALENCE_CLASSES determineEquivalenceClass(char inputCharacter);
   bool executeAction(ACTIONS currentAction, char currentInput);
   bool buildString(char * buffer, char newCharacter);
@@ -85,7 +85,7 @@ class JSON {
   bool buildKeyWord(char * buffer, char newCharacter);
   char * startKeyWord(void);
   char * endKeyWord(char * buffer);
-  
+
  public:
   bool parse(char * inputBuffer);
   char * getValue(const char * name);

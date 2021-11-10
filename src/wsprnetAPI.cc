@@ -98,14 +98,14 @@ char * wsprnetAPI::jsonFind(const char * fieldName, char * buffer, size_t buffer
     if (*location ==  '"') location++;
     while (*location != '"' && location < lastValidLocation) {
       value[destination++] = *location++;
-      if (destination >= (FIELD_SIZE - 1)){
+      if (destination >= (FIELD_SIZE - 1)) {
         fprintf(stderr, "Field too large to fit in buffer - terminating and deleting allocated space\n");
         free(value);
         value = 0;
         break;
       }
     }
-    if(value) value[destination] = 0;
+    if (value) value[destination] = 0;
   }
   return value;
 }
@@ -134,11 +134,11 @@ void wsprnetAPI::login() {
   parameters[1] = &payloadSize;
   payloadSize = sizeof(payload);
   char loginMessage[1024];
-  sprintf(loginMessage, " { \"name\":\"%s\", \"pass\":\"%s\" }\n", loginID, password);
+  snprintf(loginMessage, sizeof(loginMessage), " { \"name\":\"%s\", \"pass\":\"%s\" }\n", loginID, password);
   fprintf(stderr, "size of receive buffer is %d bytes\n", payloadSize);
   curl_easy_setopt(sendPost, CURLOPT_WRITEDATA, parameters);
   curl_easy_setopt(sendPost, CURLOPT_POSTFIELDS, loginMessage);
-  curl_easy_setopt(sendPost, CURLOPT_POSTFIELDSIZE, (long) strlen(loginMessage));
+  curl_easy_setopt(sendPost, CURLOPT_POSTFIELDSIZE, (int64_t) strlen(loginMessage));
   if (debug) {
     fprintf(stderr, "Message body: %s\nMessage Size: %d\n", loginMessage, strlen(loginMessage));
     curl_easy_setopt(sendPost, CURLOPT_VERBOSE, 1L);
@@ -150,29 +150,25 @@ void wsprnetAPI::login() {
   fprintf(stderr, "Message being searched:\n %s\n", payload);
   sessionName = jsonFind("\"session_name\":", payload, strlen(payload));
   if (sessionName) {
-    fprintf(stderr,"sessionName is: %s\n", sessionName);
+    fprintf(stderr, "sessionName is: %s\n", sessionName);
   }
   sessionID = jsonFind("\"sessid\":", payload, strlen(payload));
   if (sessionID) {
-    fprintf(stderr,"sessionID is: %s\n", sessionID);
+    fprintf(stderr, "sessionID is: %s\n", sessionID);
   }
   token = jsonFind("\"token\":", payload, strlen(payload));
   if (token) {
-    fprintf(stderr,"token is: %s\n", token);
+    fprintf(stderr, "token is: %s\n", token);
   }
   size_t cookieSize = strlen(sessionName) + strlen(sessionID) + 128;
   cookie = reinterpret_cast<char *>(malloc(cookieSize));
   memset(cookie, 0, cookieSize);
-  strcat(cookie, "Cookie: ");
-  strcat(cookie, sessionName);
-  strcat(cookie, "=");
-  strcat(cookie, sessionID);
+  snprintf(cookie, cookieSize, "Cookie: %s=%s", sessionName, sessionID);
   fprintf(stderr, "Cookie construction: %s\n", cookie);
   size_t XCSRFTokenSize = strlen(token) + 128;
   XCSRFToken = reinterpret_cast<char *>(malloc(XCSRFTokenSize));
   memset(XCSRFToken, 0, XCSRFTokenSize);
-  strcat(XCSRFToken, "X-CSRF-Token: ");
-  strcat(XCSRFToken, token);
+  snprintf(XCSRFToken, XCSRFTokenSize, "X-CSRF-Token %s", token);
   fprintf(stderr, "X-CSRF-Token construction: %s\n", XCSRFToken);
   curl_slist_free_all(list);
   curl_easy_cleanup(sendPost);
@@ -210,19 +206,9 @@ void wsprnetAPI::querySpots(const char * filters) {
 void wsprnetAPI::querySpots(char * filters) {
   char command[1024];
   memset(command, 0, sizeof(command));
-  size_t maxCString = sizeof(command) - 1;
-  if (strlen(urlQuerySpots) < maxCString) {
-    strcpy(command, urlQuerySpots);
-    if (strlen(command) + strlen(filters) < maxCString) {
-      strcat(command, filters);
-      sendQuery(command);
-      fprintf(stderr, "Spots returned:\n %s\n", payload);
-    } else {
-      fprintf(stderr, "Spots command could not be sent - buffer overflow\n");
-    }
-  } else {
-    fprintf(stderr, "Spots command could not be sent - buffer overflow\n");
-  } 
+  snprintf(command, sizeof(command), "%s%s", urlQuerySpots, filters);
+  sendQuery(command);
+  fprintf(stderr, "Spots returned:\n %s\n", payload);
 }
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
@@ -257,19 +243,9 @@ void wsprnetAPI::queryPaths(const char * filters) {
 void wsprnetAPI::queryPaths(char * filters) {
   char command[1024];
   memset(command, 0, sizeof(command));
-  size_t maxCString = sizeof(command) - 1;
-  if (strlen(urlQueryPaths) < maxCString) {
-    strcpy(command, urlQueryPaths);
-    if (strlen(command) + strlen(filters) < maxCString) {
-      strcat(command, filters);
-      sendQuery(command);
-      fprintf(stderr, "Paths returned:\n %s\n", payload);
-    } else {
-      fprintf(stderr, "Paths command could not be sent - buffer overflow\n");
-    }
-  } else {
-    fprintf(stderr, "Paths command could not be sent - buffer overflow\n");
-  } 
+  snprintf(command, sizeof(command), "%s%s", urlQueryPaths, filters);
+  sendQuery(command);
+  fprintf(stderr, "Paths returned:\n %s\n", payload);
 }
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
@@ -304,19 +280,9 @@ void wsprnetAPI::queryStatus(const char * filters) {
 void wsprnetAPI::queryStatus(char * filters) {
   char command[1024];
   memset(command, 0, sizeof(command));
-  size_t maxCString = sizeof(command) - 1;
-  if (strlen(urlQueryStatus) < maxCString) {
-    strcpy(command, urlQueryStatus);
-    if (strlen(command) + strlen(filters) < maxCString) {
-      strcat(command, filters);
-      sendQuery(command);
-      fprintf(stderr, "Status returned:\n %s\n", payload);
-    } else {
-      fprintf(stderr, "Status command could not be sent - buffer overflow\n");
-    }
-  } else {
-    fprintf(stderr, "Status command could not be sent - buffer overflow\n");
-  } 
+  snprintf(command, sizeof(command), "%s%s", urlQueryStatus, filters);
+  sendQuery(command);
+  fprintf(stderr, "Status returned:\n %s\n", payload);
 }
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
@@ -347,7 +313,7 @@ void wsprnetAPI::sendQuery(char * endPointWithFilters) {
   const char body[] = "{}";
   curl_easy_setopt(sendPost, CURLOPT_WRITEDATA, parameters);
   curl_easy_setopt(sendPost, CURLOPT_POSTFIELDS, body);
-  curl_easy_setopt(sendPost, CURLOPT_POSTFIELDSIZE, (long) sizeof(body));
+  curl_easy_setopt(sendPost, CURLOPT_POSTFIELDSIZE, (int64_t) sizeof(body));
   CURLcode result = curl_easy_perform(sendPost);
   if (result) {
     fprintf(stderr, "Curlcode: %d\n", result);
@@ -384,7 +350,7 @@ void wsprnetAPI::logout() {
   static const char body[] = " { }\n";
   curl_easy_setopt(sendPost, CURLOPT_WRITEDATA, parameters);
   curl_easy_setopt(sendPost, CURLOPT_POSTFIELDS, body);
-  curl_easy_setopt(sendPost, CURLOPT_POSTFIELDSIZE, (long) strlen(body));
+  curl_easy_setopt(sendPost, CURLOPT_POSTFIELDSIZE, (int64_t) strlen(body));
   CURLcode result = curl_easy_perform(sendPost);
   if (result) {
     fprintf(stderr, "Curlcode: %d\n", result);
@@ -416,7 +382,7 @@ wsprnetAPI::wsprnetAPI() {
     if (credentials[index] == ':') {
       firstField = false;
       loginID[index] = 0;
-      index++; // skip :
+      index++;  // skip :
     }
     if (firstField) {
       loginID[index] = credentials[index];
