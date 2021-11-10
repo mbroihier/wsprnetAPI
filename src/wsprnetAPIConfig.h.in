@@ -1,0 +1,12 @@
+//
+//   Warning!!! Do NOT commit the .h file created by cmake
+//
+#define wsprnetAPI_VERSION_NUMBER @PROJECT_VERSION@
+#define PROTOCOL @PROTOCOL@
+#define URL_LOGIN @URL_LOGIN@
+#define URL_QUERY_SPOTS @URL_QUERY_SPOTS@
+#define URL_QUERY_PATHS @URL_QUERY_PATHS@
+#define URL_QUERY_STATUS @URL_QUERY_STATUS@
+#define URL_LOGOUT @URL_LOGOUT@
+#define CREDENTIALS @CREDENTIALS@
+#define DEBUG @DEBUG@
