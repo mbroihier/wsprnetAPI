@@ -13,10 +13,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <map>
 /* ---------------------------------------------------------------------- */
 class JSON {
  private:
   bool debug = false;
+  bool returnToParent = false;
   enum STATES {INITIAL, STRING, NUMBER, KEYWORD, ERROR, NUMBER_OF_STATES };
   STATES state;
   STATES nextState;
@@ -54,12 +56,15 @@ class JSON {
 
   enum TOKENS
     { OBJECT_, ARRAY_, STRING_, COLON_, COMMA_, NUMBER_, LEFT_BRACE_, RIGHT_BRACE_, LEFT_BRACKET_, RIGHT_BRACKET_,
-      BOOLEAN_ };
+      BOOLEAN_, NULL_ };
 
   static const size_t TOKEN_STACK_SIZE = 1024;
-  TOKENS tokens[TOKEN_STACK_SIZE];
+  TOKENS token[TOKEN_STACK_SIZE];
   void * symbolTableReference[TOKEN_STACK_SIZE];
   size_t stackPointer = 0;
+  size_t inputIndex = 0;
+  size_t arrayIndex = 0;
+  char currentlyBuilding[1024];
 
   regex_t isAlpha;
   regex_t isNumber;
@@ -75,7 +80,7 @@ class JSON {
   char * workspace;
 
   EQUIVALENCE_CLASSES determineEquivalenceClass(char inputCharacter);
-  bool executeAction(ACTIONS currentAction, char currentInput);
+  bool executeAction(ACTIONS currentAction, char currentInput, char * inputBuffer);
   bool buildString(char * buffer, char newCharacter);
   char * startString(void);
   char * endString(char * buffer);
@@ -85,9 +90,26 @@ class JSON {
   bool buildKeyWord(char * buffer, char newCharacter);
   char * startKeyWord(void);
   char * endKeyWord(char * buffer);
+  void checkAndReduce();
 
+  std::map<std::string, char *> stringElements;
+  std::map<std::string, char *> numberElements;
+  std::map<std::string, bool> boolElements;
+  std::map<std::string, bool> nullElements;
+  std::map<std::string, JSON *> jsonElements;
+  std::map<int, char *> aStringElements;
+  std::map<int, char *> aNumberElements;
+  std::map<int, bool> aBoolElements;
+  std::map<int, bool> aNullElements;
+  std::map<int, JSON *> aJsonElements;
+  enum OBJECT_TYPES { UNKNOWN, JSON_OBJECT, JSON_ARRAY };
  public:
+  OBJECT_TYPES thisIsA = UNKNOWN;
   bool parse(char * inputBuffer);
+  const char * printToken(TOKENS token);
+  const char * printState(STATES state);
+  void printStack(void);
+  void print(bool parent);
   char * getValue(const char * name);
   bool setValue(const char * name, char * value);
   JSON();
