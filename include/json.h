@@ -17,6 +17,7 @@
 /* ---------------------------------------------------------------------- */
 class JSON {
  private:
+  char * textCopy;
   bool debug = false;
   bool returnToParent = false;
   enum STATES {INITIAL, STRING, NUMBER, KEYWORD, ERROR, NUMBER_OF_STATES };
@@ -91,6 +92,8 @@ class JSON {
   char * startKeyWord(void);
   char * endKeyWord(char * buffer);
   void checkAndReduce();
+  bool parse(char * inputBuffer);
+  void initialize(char * inputBuffer);
 
   std::map<std::string, char *> stringElements;
   std::map<std::string, char *> numberElements;
@@ -105,7 +108,6 @@ class JSON {
   enum OBJECT_TYPES { UNKNOWN, JSON_OBJECT, JSON_ARRAY };
  public:
   OBJECT_TYPES thisIsA = UNKNOWN;
-  bool parse(char * inputBuffer);
   const char * printToken(TOKENS token);
   const char * printState(STATES state);
   void printStack(void);
@@ -113,6 +115,8 @@ class JSON {
   char * getValue(const char * name);
   bool setValue(const char * name, char * value);
   JSON();
+  JSON(char * jsonText);
+  JSON(const char * jsonText);
   ~JSON();
 };
 #endif  // INCLUDE_JSON_H_

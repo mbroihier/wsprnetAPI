@@ -804,7 +804,7 @@ void JSON::print(bool parent=false) {
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
 /*
- *      JSON - constructor
+ *      initialize - initialize the object
  *
  *      Copyright (C) 2021
  *          Mark Broihier
@@ -812,8 +812,7 @@ void JSON::print(bool parent=false) {
  */
 
 /* ---------------------------------------------------------------------- */
-
-JSON::JSON() {
+void JSON::initialize(char * jsonText) {
   char buf[1024];
   int result;
   regcomp(&isAlpha, "[a-zA-Z_&//@]", REG_NOSUB);
@@ -857,6 +856,52 @@ JSON::JSON() {
   memset(currentlyBuilding, 0, sizeof(currentlyBuilding));
   snprintf(currentlyBuilding, sizeof(currentlyBuilding), "doing nothing");
   state = INITIAL;
+  if (strlen(jsonText) > 0) parse(jsonText);
+}
+/* ---------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------- */
+/*
+ *      JSON - constructor
+ *
+ *      Copyright (C) 2021
+ *          Mark Broihier
+ *
+ */
+
+/* ---------------------------------------------------------------------- */
+JSON::JSON(void) {
+  textCopy = strdup("");
+  initialize(textCopy);
+}
+/* ---------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------- */
+/*
+ *      JSON - constructor
+ *
+ *      Copyright (C) 2021
+ *          Mark Broihier
+ *
+ */
+
+/* ---------------------------------------------------------------------- */
+JSON::JSON(const char * jsonText) {
+  textCopy = strdup(jsonText);
+  initialize(textCopy);
+}
+/* ---------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------- */
+/*
+ *      JSON - constructor
+ *
+ *      Copyright (C) 2021
+ *          Mark Broihier
+ *
+ */
+
+/* ---------------------------------------------------------------------- */
+JSON::JSON(char * jsonText) {
+  textCopy = 0;
+  initialize(jsonText);
 }
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
@@ -870,6 +915,9 @@ JSON::JSON() {
 /* ---------------------------------------------------------------------- */
 
 JSON::~JSON() {
+  if (textCopy) {
+    free(textCopy);
+  }
   if (thisIsA == JSON_OBJECT) {
     {
       std::map<std::string, char *>::iterator iterator;
