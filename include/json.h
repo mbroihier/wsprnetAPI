@@ -14,6 +14,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <map>
+#include <string>
 /* ---------------------------------------------------------------------- */
 class JSON {
  private:
@@ -94,6 +95,7 @@ class JSON {
   void checkAndReduce();
   bool parse(char * inputBuffer);
   void initialize(char * inputBuffer);
+  char * getFirstIndex(char * name);
 
   std::map<std::string, char *> stringElements;
   std::map<std::string, char *> numberElements;
@@ -106,6 +108,7 @@ class JSON {
   std::map<int, bool> aNullElements;
   std::map<int, JSON *> aJsonElements;
   enum OBJECT_TYPES { UNKNOWN, JSON_OBJECT, JSON_ARRAY };
+
  public:
   OBJECT_TYPES thisIsA = UNKNOWN;
   const char * printToken(TOKENS token);
@@ -113,10 +116,11 @@ class JSON {
   void printStack(void);
   void print(bool parent);
   char * getValue(const char * name);
+  char * getValue(char * name);
   bool setValue(const char * name, char * value);
   JSON();
-  JSON(char * jsonText);
-  JSON(const char * jsonText);
+  explicit JSON(char * jsonText);
+  explicit JSON(const char * jsonText);
   ~JSON();
 };
 #endif  // INCLUDE_JSON_H_

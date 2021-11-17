@@ -24,7 +24,7 @@ JSON::EQUIVALENCE_CLASSES JSON::determineEquivalenceClass(char inputCharacter) {
   EQUIVALENCE_CLASSES returnValue = NUMBER_OF_EQUIVALENCE_CLASSES;
   ic[0] = inputCharacter;
   ic[1] = 0;
-  fprintf(stderr, "Classifying %s ", ic);
+  if (debug) fprintf(stderr, "Classifying %s ", ic);
   if (!regexec(&isAlpha, ic, 0, 0, 0)) {
     returnValue = ALPHA;
   } else if (!regexec(&isNumber, ic, 0, 0, 0)) {
@@ -48,7 +48,7 @@ JSON::EQUIVALENCE_CLASSES JSON::determineEquivalenceClass(char inputCharacter) {
   } else {
     fprintf(stderr, "error, can't classify %s\n", ic);
   }
-  fprintf(stderr, "as %d\n", returnValue);
+  if (debug) fprintf(stderr, "as %d\n", returnValue);
   return(returnValue);
 }
 /* ---------------------------------------------------------------------- */
@@ -65,18 +65,18 @@ JSON::EQUIVALENCE_CLASSES JSON::determineEquivalenceClass(char inputCharacter) {
 bool JSON::executeAction(ACTIONS currentAction, char currentInput, char * inputBuffer) {
   switch (currentAction) {
   case NOTHING: {
-    fprintf(stderr, "Doing nothing with a %c\n", currentInput);
+    if (debug) fprintf(stderr, "Doing nothing with a %c\n", currentInput);
     break;
   }
   case RECORD_OBJECT_START: {
     if (thisIsA == UNKNOWN) {
       thisIsA = JSON_OBJECT;
-      fprintf(stderr, "Recording an object start with %c\n", currentInput);
+      if (debug) fprintf(stderr, "Recording an object start with %c\n", currentInput);
       symbolTableReference[stackPointer] = NULL;
       token[stackPointer++] = LEFT_BRACE_;
       snprintf(currentlyBuilding, sizeof(currentlyBuilding), "building object");
     } else {
-      fprintf(stderr, "Making a child JSON object\n");
+      if (debug) fprintf(stderr, "Making a child JSON object\n");
       JSON * child = new(JSON);
       if (child->parse(inputBuffer+inputIndex-1)) {
         symbolTableReference[stackPointer] = child;
@@ -87,7 +87,7 @@ bool JSON::executeAction(ACTIONS currentAction, char currentInput, char * inputB
             break;
           }
         }
-        fprintf(stderr, "recording JSON child object, parsing continues at %d\n", inputIndex);
+        if (debug) fprintf(stderr, "recording JSON child object, parsing continues at %d\n", inputIndex);
       } else {
         fprintf(stderr, "Child object failed to parse - stopping\n");
         return(false);
@@ -96,7 +96,7 @@ bool JSON::executeAction(ACTIONS currentAction, char currentInput, char * inputB
     break;
   }
   case RECORD_OBJECT_END: {
-    fprintf(stderr, "Recording an object end with a %c\n", currentInput);
+    if (debug) fprintf(stderr, "Recording an object end with a %c\n", currentInput);
     symbolTableReference[stackPointer] = NULL;
     token[stackPointer++] = RIGHT_BRACE_;
     snprintf(currentlyBuilding, sizeof(currentlyBuilding), "doing nothing");
@@ -104,18 +104,18 @@ bool JSON::executeAction(ACTIONS currentAction, char currentInput, char * inputB
     break;
   }
   case RECORD_STRING_START: {
-    fprintf(stderr, "Recording a string start with a %c\n", currentInput);
+    if (debug) fprintf(stderr, "Recording a string start with a %c\n", currentInput);
     workspace = startString();
     break;
   }
   case RECORD_STRING: {
-    fprintf(stderr, "Recording a string end with a %c\n", currentInput);
+    if (debug) fprintf(stderr, "Recording a string end with a %c\n", currentInput);
     workspace = endString(workspace);
     token[stackPointer++] = STRING_;
     break;
   }
   case BUILD_STRING: {
-    fprintf(stderr, "Building a string with a %c\n", currentInput);
+    if (debug) fprintf(stderr, "Building a string with a %c\n", currentInput);
     if (!buildString(workspace, currentInput)) {
       fprintf(stderr, "Ran out of space for the string being built\n");
       return(false);
@@ -130,7 +130,7 @@ bool JSON::executeAction(ACTIONS currentAction, char currentInput, char * inputB
       fprintf(stderr, "Improperly formatted key word\n");
       return(false);
     }
-    fprintf(stderr, "Building a key word with a %c\n", currentInput);
+    if (debug) fprintf(stderr, "Building a key word with a %c\n", currentInput);
     break;
   }
   case BUILD_NUMBER: {
@@ -141,33 +141,33 @@ bool JSON::executeAction(ACTIONS currentAction, char currentInput, char * inputB
       fprintf(stderr, "Ran out of space for the number being built\n");
       return(false);
     }
-    fprintf(stderr, "Building a number with a %c\n", currentInput);
+    if (debug) fprintf(stderr, "Building a number with a %c\n", currentInput);
     break;
   }
   case RECORD_COLON: {
-    fprintf(stderr, "Recording a colon with a %c\n", currentInput);
+    if (debug) fprintf(stderr, "Recording a colon with a %c\n", currentInput);
     symbolTableReference[stackPointer] = NULL;
     token[stackPointer++] = COLON_;
     break;
   }
   case RECORD_NUMBER: {
-    fprintf(stderr, "Recording a number with a %c\n", currentInput);
+    if (debug) fprintf(stderr, "Recording a number with a %c\n", currentInput);
     workspace = endNumber(workspace);
     token[stackPointer++] = NUMBER_;
     if (currentInput == ',') {
       symbolTableReference[stackPointer] = NULL;
       token[stackPointer++] = COMMA_;
-      fprintf(stderr, "Recording a comma - lambda transition\n");
+      if (debug) fprintf(stderr, "Recording a comma - lambda transition\n");
     } else if (currentInput == '}') {
       symbolTableReference[stackPointer] = NULL;
       token[stackPointer++] = RIGHT_BRACE_;
-      fprintf(stderr, "Recording an object end with right curly bracket - lambda transition\n");
+      if (debug) fprintf(stderr, "Recording an object end with right curly bracket - lambda transition\n");
       returnToParent = true;
     }
     break;
   }
   case RECORD_KEYWORD: {
-    fprintf(stderr, "Recording a key word with a %c\n", currentInput);
+    if (debug) fprintf(stderr, "Recording a key word with a %c\n", currentInput);
     workspace = endKeyWord(workspace);
     if (strcmp(workspace, "true") == 0) {
       token[stackPointer++] = BOOLEAN_;
@@ -181,11 +181,11 @@ bool JSON::executeAction(ACTIONS currentAction, char currentInput, char * inputB
     if (currentInput == ',') {
       symbolTableReference[stackPointer] = NULL;
       token[stackPointer++] = COMMA_;
-      fprintf(stderr, "Recording a comma - lambda transition\n");
+      if (debug) fprintf(stderr, "Recording a comma - lambda transition\n");
     } else if (currentInput == '}') {
       symbolTableReference[stackPointer] = NULL;
       token[stackPointer++] = RIGHT_BRACE_;
-      fprintf(stderr, "Recording an object end with right curly bracket - lambda transition\n");
+      if (debug) fprintf(stderr, "Recording an object end with right curly bracket - lambda transition\n");
       returnToParent = true;
     }
     break;
@@ -195,10 +195,10 @@ bool JSON::executeAction(ACTIONS currentAction, char currentInput, char * inputB
       thisIsA = JSON_ARRAY;
       symbolTableReference[stackPointer] = NULL;
       token[stackPointer++] = LEFT_BRACKET_;
-      fprintf(stderr, "Recording an array start with a %c\n", currentInput);
+      if (debug) fprintf(stderr, "Recording an array start with a %c\n", currentInput);
       snprintf(currentlyBuilding, sizeof(currentlyBuilding), "building array");
     } else {
-      fprintf(stderr, "Making a child ARRAY object\n");
+      if (debug) fprintf(stderr, "Making a child ARRAY object\n");
       JSON * child = new(JSON);
       if (child->parse(inputBuffer+inputIndex-1)) {
         symbolTableReference[stackPointer] = child;
@@ -209,7 +209,7 @@ bool JSON::executeAction(ACTIONS currentAction, char currentInput, char * inputB
             break;
           }
         }
-        fprintf(stderr, "recording JSON child array object, parsing continues at %d\n", inputIndex);
+        if (debug) fprintf(stderr, "recording JSON child array object, parsing continues at %d\n", inputIndex);
       } else {
         fprintf(stderr, "Child array object failed to parse - stopping\n");
         return(false);
@@ -220,7 +220,7 @@ bool JSON::executeAction(ACTIONS currentAction, char currentInput, char * inputB
   case RECORD_RB: {
     symbolTableReference[stackPointer] = NULL;
     token[stackPointer++] = RIGHT_BRACKET_;
-    fprintf(stderr, "Recording an array object end with a %c\n", currentInput);
+    if (debug) fprintf(stderr, "Recording an array object end with a %c\n", currentInput);
     snprintf(currentlyBuilding, sizeof(currentlyBuilding), "doing nothing");
     returnToParent = true;
     break;
@@ -228,7 +228,7 @@ bool JSON::executeAction(ACTIONS currentAction, char currentInput, char * inputB
   case RECORD_COMMA: {
     symbolTableReference[stackPointer] = NULL;
     token[stackPointer++] = COMMA_;
-    fprintf(stderr, "Recording a comma with a %c\n", currentInput);
+    if (debug) fprintf(stderr, "Recording a comma with a %c\n", currentInput);
     break;
   }
   default:
@@ -252,12 +252,13 @@ bool JSON::parse(char * inputBuffer) {
   char lexChar;
   EQUIVALENCE_CLASSES inputClass;
   ACTIONS action;
-  fprintf(stderr, "Buffer to parse:\n%s input index is %d\n", inputBuffer, inputIndex);
+  if (debug) fprintf(stderr, "Buffer to parse:\n%s input index is %d\n", inputBuffer, inputIndex);
   while (inputBuffer[inputIndex] != 0 && !returnToParent) {
     lexChar = inputBuffer[inputIndex++];
     inputClass = determineEquivalenceClass(lexChar);
     if (inputClass == NUMBER_OF_EQUIVALENCE_CLASSES) {
-      fprintf(stderr, "Stopping parse do to unexpected input\n");
+      fprintf(stderr, "Stopping parse do to unexpected input, %c, at location %d\n", lexChar, inputIndex - 1);
+      fprintf(stderr, "inputBuffer:\n%s\n", inputBuffer);
       return(false);
     }
     nextState = StateTransitionMatrix[inputClass][state];
@@ -272,10 +273,13 @@ bool JSON::parse(char * inputBuffer) {
       return(false);
     }
     state = nextState;
-    printStack();
+    if (debug) fprintf(stdout, "Before Stack\n");
+    if (debug) printStack();
     checkAndReduce();
+    if (debug) fprintf(stdout, "After Stack\n");
+    if (debug) printStack();
   }
-  fprintf(stdout, "Parsing complete without error after processing %d characters\n", inputIndex);
+  if (debug) fprintf(stderr, "Parsing complete without error after processing %d characters\n", inputIndex);
   return(true);
 }
 /* ---------------------------------------------------------------------- */
@@ -291,6 +295,154 @@ bool JSON::parse(char * inputBuffer) {
 /* ---------------------------------------------------------------------- */
 char * JSON::getValue(const char * name) {
   char * result;
+  char * copyOfName = strdup(name);
+  result = getValue(copyOfName);
+  free(copyOfName);
+  return(result);
+}
+/* ---------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------- */
+/*
+ *      getValue.cc -- get the JSON object value pointed to by name
+ *
+ *      Copyright (C) 2021
+ *          Mark Broihier
+ *
+ */
+
+/* ---------------------------------------------------------------------- */
+char * JSON::getValue(char * name) {
+  const size_t resultSize = 128;
+  char * result;
+  char * copyOfName = strdup(name);
+  bool isArrayIndex = name[0] == '[';
+  char * index = getFirstIndex(copyOfName);
+  if (debug) fprintf(stderr, "first index: %s, remainder: %s\n", index, copyOfName);
+  if (isArrayIndex) {
+    std::map<int, char*>::iterator sit;
+    std::map<int, char*>::iterator numit;
+    std::map<int, bool>::iterator bit;
+    std::map<int, bool>::iterator nullit;
+    std::map<int, JSON *>::iterator jit;
+    int arrayIndex;
+    sscanf(index, "%d", &arrayIndex);
+    // return what is at that array index
+    sit = aStringElements.find(arrayIndex);
+    if (sit == aStringElements.end()) {
+      numit = aNumberElements.find(arrayIndex);
+      if (numit == aNumberElements.end()) {
+        bit = aBoolElements.find(arrayIndex);
+        if (bit == aBoolElements.end()) {
+          nullit = aNullElements.find(arrayIndex);
+          if (nullit == aNullElements.end()) {
+            jit = aJsonElements.find(arrayIndex);
+            if (jit == aJsonElements.end()) {
+              // index was not found - return null
+              result = NULL;
+            } else {
+              result = (jit->second)->getValue(copyOfName);
+            }
+          } else {  // is null
+            result = reinterpret_cast<char *>(malloc(resultSize));
+            memset(result, 0, resultSize);
+            snprintf(result, resultSize, "null");
+          }
+        } else {  // is boolean
+          result = reinterpret_cast<char *>(malloc(resultSize));
+          memset(result, 0, resultSize);
+          snprintf(result, resultSize, "%s", bit->second ? "true" : "false");
+        }
+      } else {  // is number
+        result = reinterpret_cast<char *>(malloc(resultSize));
+        memset(result, 0, resultSize);
+        snprintf(result, resultSize, "%s", numit->second);
+      }
+    } else {  // is string
+      result = reinterpret_cast<char *>(malloc(resultSize));
+      memset(result, 0, resultSize);
+      snprintf(result, resultSize, "%s", sit->second);
+    }
+  } else {  // JSON Object
+    std::map<std::string, char*>::iterator sit;
+    std::map<std::string, char*>::iterator numit;
+    std::map<std::string, bool>::iterator bit;
+    std::map<std::string, bool>::iterator nullit;
+    std::map<std::string, JSON *>::iterator jit;
+    sit = stringElements.find(std::string(index));
+    if (sit == stringElements.end()) {
+      numit = numberElements.find(std::string(index));
+      if (numit == numberElements.end()) {
+        bit = boolElements.find(std::string(index));
+        if (bit == boolElements.end()) {
+          nullit = nullElements.find(std::string(index));
+          if (nullit == nullElements.end()) {
+            jit = jsonElements.find(std::string(index));
+            if (jit == jsonElements.end()) {
+              // element not found, return null
+              result = NULL;
+            } else {
+              result = (jit->second)->getValue(copyOfName);
+            }
+          } else {  // is null
+            result = reinterpret_cast<char *>(malloc(resultSize));
+            memset(result, 0, resultSize);
+            snprintf(result, resultSize, "null");
+          }
+        } else {  // is boolean
+          result = reinterpret_cast<char *>(malloc(resultSize));
+          memset(result, 0, resultSize);
+          snprintf(result, resultSize, "%s", bit->second ? "true" : "false");
+        }
+      } else {  // is number
+        result = reinterpret_cast<char *>(malloc(resultSize));
+        memset(result, 0, resultSize);
+        snprintf(result, resultSize, "%s", numit->second);
+      }
+    } else {  // is string
+      result = reinterpret_cast<char *>(malloc(resultSize));
+      memset(result, 0, resultSize);
+      snprintf(result, resultSize, "%s", sit->second);
+    }
+  }
+  return(result);
+}
+/* ---------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------- */
+/*
+ *      getFirstIndex.cc -- get an index for this object
+ *
+ *      Copyright (C) 2021
+ *          Mark Broihier
+ *
+ */
+
+/* ---------------------------------------------------------------------- */
+char * JSON::getFirstIndex(char * name) {
+  char * result = reinterpret_cast<char *>(malloc(strlen(name)));
+  char ic[2];
+  size_t index = 0;
+  regex_t pattern;
+  ic[1] = 0;
+  if (name[0] == '[') {  // this is an array index
+    pattern = isNumber;
+    index = 1;  // skip this character
+  } else {
+    pattern = isAlpha;
+  }
+  size_t indexIndex = 0;
+  ic[0] = name[index];
+  while (!regexec(&pattern, ic, 0, 0, 0)) {
+    result[indexIndex++] = name[index];
+    index++;
+    ic[0] = name[index];
+  }
+  result[indexIndex] = 0;
+  index++;
+  size_t backFillIndex = 0;
+  while (index < strlen(name)) {
+    name[backFillIndex++] = name[index++];
+  }
+  name[backFillIndex] = 0;
   return(result);
 }
 /* ---------------------------------------------------------------------- */
@@ -356,7 +508,7 @@ bool JSON::buildString(char * buffer, char newCharacter) {
 
 /* ---------------------------------------------------------------------- */
 char * JSON::endString(char * buffer) {
-  fprintf(stderr, "a string has been built - it's value is:\n%s\n", buffer);
+  if (debug) fprintf(stderr, "a string has been built - it's value is:\n%s\n", buffer);
   symbolTableReference[stackPointer] = buffer;
   return(NULL);
 }
@@ -411,8 +563,8 @@ bool JSON::buildNumber(char * buffer, char newCharacter) {
 char * JSON::endNumber(char * buffer) {
   double number;
   sscanf(buffer, "%lf", &number);
-  fprintf(stderr, "a number has been built - it's value is:\n%lf\n", number);
-  fprintf(stderr, "buffer contents: %s\n", buffer);
+  if (debug) fprintf(stderr, "a number has been built - it's value is:\n%lf\n", number);
+  if (debug) fprintf(stderr, "buffer contents: %s\n", buffer);
   symbolTableReference[stackPointer] = buffer;
   return(NULL);
 }
@@ -467,7 +619,7 @@ bool JSON::buildKeyWord(char * buffer, char newCharacter) {
 
 /* ---------------------------------------------------------------------- */
 char * JSON::endKeyWord(char * buffer) {
-  fprintf(stderr, "a key word has been built - it's value is:\n%s\n", buffer);
+  if (debug) fprintf(stderr, "a key word has been built - it's value is:\n%s\n", buffer);
   symbolTableReference[stackPointer] = buffer;
   return(NULL);
 }
@@ -488,137 +640,122 @@ void JSON::checkAndReduce() {
   if (thisIsA == JSON_OBJECT) {
     if (stackPointer > 4 && token[stackPointer - 1] == COMMA_ && token[stackPointer - 2] == STRING_ &&
         token[stackPointer - 3] == COLON_ && token[stackPointer - 4] == STRING_) {
-      fprintf(stderr, "A reduction can occur that creates a JSON entry that is a string\n");
-      stringElements[std::string((char *)symbolTableReference[stackPointer - 4])] =
-        (char *)symbolTableReference[stackPointer - 2];
+      if (debug) fprintf(stderr, "A reduction can occur that creates a JSON entry that is a string\n");
+      stringElements[std::string(reinterpret_cast<char *>(symbolTableReference[stackPointer - 4]))] =
+        reinterpret_cast<char *>(symbolTableReference[stackPointer - 2]);
       free(symbolTableReference[stackPointer - 4]);  // free dangling cstr rest will be done in destructor
       stackPointer -= 4;
-      printStack();
     } else if (stackPointer > 4 && token[stackPointer - 1] == COMMA_ && token[stackPointer - 2] == NUMBER_ &&
                token[stackPointer - 3] == COLON_ && token[stackPointer - 4] == STRING_) {
-      fprintf(stderr, "A reduction can occur that creates a JSON entry that is a number\n");
-      numberElements[std::string((char *)symbolTableReference[stackPointer - 4])] =
-        (char *)symbolTableReference[stackPointer - 2];
+      if (debug) fprintf(stderr, "A reduction can occur that creates a JSON entry that is a number\n");
+      numberElements[std::string(reinterpret_cast<char *>(symbolTableReference[stackPointer - 4]))] =
+        reinterpret_cast<char *>(symbolTableReference[stackPointer - 2]);
       free(symbolTableReference[stackPointer - 4]);  // free dangling cstr rest will be done in destructor
       stackPointer -= 4;
-      printStack();
     } else if (stackPointer > 4 && token[stackPointer - 1] == COMMA_ && token[stackPointer - 2] == BOOLEAN_ &&
                token[stackPointer - 3] == COLON_ && token[stackPointer - 4] == STRING_) {
-      fprintf(stderr, "A reduction can occur that creates a JSON entry that is a boolean\n");
-      boolElements[std::string((char *)symbolTableReference[stackPointer - 4])] =
-        strcmp((char *)symbolTableReference[stackPointer - 2], "true") == 0;
+      if (debug) fprintf(stderr, "A reduction can occur that creates a JSON entry that is a boolean\n");
+      boolElements[std::string(reinterpret_cast<char *>(symbolTableReference[stackPointer - 4]))] =
+        strcmp(reinterpret_cast<char *>(symbolTableReference[stackPointer - 2]), "true") == 0;
       free(symbolTableReference[stackPointer - 4]);  // free dangling cstr
       stackPointer -= 4;
-      printStack();
     } else if (stackPointer > 4 && token[stackPointer - 1] == COMMA_ && token[stackPointer - 2] == NULL_ &&
                token[stackPointer - 3] == COLON_ && token[stackPointer - 4] == STRING_) {
-      fprintf(stderr, "A reduction can occur that creates a JSON entry that is null\n");
-      boolElements[std::string((char *)symbolTableReference[stackPointer - 4])] = true;
+      if (debug) fprintf(stderr, "A reduction can occur that creates a JSON entry that is null\n");
+      boolElements[std::string(reinterpret_cast<char *>(symbolTableReference[stackPointer - 4]))] = true;
       free(symbolTableReference[stackPointer - 4]);  // free dangling cstr
       stackPointer -= 4;
     } else if (stackPointer > 4 && token[stackPointer - 1] == COMMA_ && token[stackPointer - 2] == OBJECT_ &&
                token[stackPointer - 3] == COLON_ && token[stackPointer - 4] == STRING_) {
-      fprintf(stderr, "A reduction can occur that creates a JSON entry that is another JSON object\n");
-      jsonElements[std::string((char *)symbolTableReference[stackPointer - 4])] =
-        (JSON *)symbolTableReference[stackPointer - 2];
+      if (debug) fprintf(stderr, "A reduction can occur that creates a JSON entry that is another JSON object\n");
+      jsonElements[std::string(reinterpret_cast<char *>(symbolTableReference[stackPointer - 4]))] =
+        reinterpret_cast<JSON *>(symbolTableReference[stackPointer - 2]);
       free(symbolTableReference[stackPointer - 4]);  // free dangling cstr rest will be done in destructor
       stackPointer -= 4;
-      printStack();
     } else if (stackPointer > 4 && token[stackPointer - 1] == RIGHT_BRACE_ && token[stackPointer - 2] == STRING_ &&
                token[stackPointer - 3] == COLON_ && token[stackPointer - 4] == STRING_) {
-      fprintf(stderr, "A reduction can occur that creates a JSON entry that is a string\n");
-      stringElements[std::string((char *)symbolTableReference[stackPointer - 4])] =
-        (char *)symbolTableReference[stackPointer - 2];
+      if (debug) fprintf(stderr, "A reduction can occur that creates a JSON entry that is a string\n");
+      stringElements[std::string(reinterpret_cast<char *>(symbolTableReference[stackPointer - 4]))] =
+        reinterpret_cast<char *>(symbolTableReference[stackPointer - 2]);
       free(symbolTableReference[stackPointer - 4]);  // free dangling cstr rest will be done in destructor
       stackPointer -= 4;
-      printStack();
     } else if (stackPointer > 4 && token[stackPointer - 1] == RIGHT_BRACE_ && token[stackPointer - 2] == NUMBER_ &&
                token[stackPointer - 3] == COLON_ && token[stackPointer - 4] == STRING_) {
-      fprintf(stderr, "A reduction can occur that creates a JSON entry that is a number\n");
-      numberElements[std::string((char *)symbolTableReference[stackPointer - 4])] =
-        (char *)symbolTableReference[stackPointer - 2];
+      if (debug) fprintf(stderr, "A reduction can occur that creates a JSON entry that is a number\n");
+      numberElements[std::string(reinterpret_cast<char *>(symbolTableReference[stackPointer - 4]))] =
+        reinterpret_cast<char *>(symbolTableReference[stackPointer - 2]);
       free(symbolTableReference[stackPointer - 4]);  // free dangling cstr rest will be done in destructor
       stackPointer -= 4;
-      printStack();
     } else if (stackPointer > 4 && token[stackPointer - 1] == RIGHT_BRACE_ && token[stackPointer - 2] == BOOLEAN_ &&
                token[stackPointer - 3] == COLON_ && token[stackPointer - 4] == STRING_) {
-      fprintf(stderr, "A reduction can occur that creates a JSON entry that is a boolean\n");
-      boolElements[std::string((char *)symbolTableReference[stackPointer - 4])] =
-        strcmp((char *)symbolTableReference[stackPointer - 2], "true") == 0;
+      if (debug) fprintf(stderr, "A reduction can occur that creates a JSON entry that is a boolean\n");
+      boolElements[std::string(reinterpret_cast<char *>(symbolTableReference[stackPointer - 4]))] =
+        strcmp(reinterpret_cast<char *>(symbolTableReference[stackPointer - 2]), "true") == 0;
       free(symbolTableReference[stackPointer - 4]);  // free dangling cstr
       stackPointer -= 4;
-      printStack();
     } else if (stackPointer > 4 && token[stackPointer - 1] == RIGHT_BRACE_ && token[stackPointer - 2] == NULL_ &&
                token[stackPointer - 3] == COLON_ && token[stackPointer - 4] == STRING_) {
-      fprintf(stderr, "A reduction can occur that creates a JSON entry that is null\n");
-      boolElements[std::string((char *)symbolTableReference[stackPointer - 4])] = true;
+      if (debug) fprintf(stderr, "A reduction can occur that creates a JSON entry that is null\n");
+      boolElements[std::string(reinterpret_cast<char *>(symbolTableReference[stackPointer - 4]))] = true;
       free(symbolTableReference[stackPointer - 4]);  // free dangling cstr
       stackPointer -= 4;
-      printStack();
     } else if (stackPointer > 4 && token[stackPointer - 1] == RIGHT_BRACE_ && token[stackPointer - 2] == OBJECT_ &&
                token[stackPointer - 3] == COLON_ && token[stackPointer - 4] == STRING_) {
-      fprintf(stderr, "A reduction can occur that creates a JSON entry that is another JSON object\n");
-      jsonElements[std::string((char *)symbolTableReference[stackPointer - 4])] =
-        (JSON *)symbolTableReference[stackPointer - 2];
+      if (debug) fprintf(stderr, "A reduction can occur that creates a JSON entry that is another JSON object\n");
+      jsonElements[std::string(reinterpret_cast<char *>(symbolTableReference[stackPointer - 4]))] =
+        reinterpret_cast<JSON *>(symbolTableReference[stackPointer - 2]);
       free(symbolTableReference[stackPointer - 4]);  // free dangling cstr rest will be done in destructor
       stackPointer -= 4;
-      printStack();
     } else {
-      fprintf(stderr, "No reduction occurred\n");
+      if (debug) fprintf(stderr, "No reduction occurred, stack pointer was %d, processing a %s\n", stackPointer,
+              "JSON OBJECT");
     }
   } else if (thisIsA == JSON_ARRAY) {
-    if (stackPointer > 2 && token[stackPointer - 1] == OBJECT_ && token[stackPointer - 2] == COMMA_) {
-      fprintf(stderr, "A reduction can occur that creates a JSON entry that is a array element\n");
-      aJsonElements[arrayIndex++] = (JSON *)symbolTableReference[stackPointer - 1];
+    if (stackPointer > 2 && token[stackPointer - 2] == OBJECT_ && token[stackPointer - 1] == COMMA_) {
+      if (debug) fprintf(stderr, "A reduction can occur that creates a JSON entry that is a array element\n");
+      aJsonElements[arrayIndex++] = reinterpret_cast<JSON *>(symbolTableReference[stackPointer - 2]);
       stackPointer -= 2;
-      printStack();
-    } else if (stackPointer > 2 && token[stackPointer - 1] == OBJECT_ && token[stackPointer - 2] == RIGHT_BRACKET_) {
-      fprintf(stderr, "A reduction can occur that creates a JSON entry that is a array element\n");
-      aJsonElements[arrayIndex++] = (JSON *)symbolTableReference[stackPointer - 1];
+    } else if (stackPointer > 2 && token[stackPointer - 2] == OBJECT_ && token[stackPointer - 1] == RIGHT_BRACKET_) {
+      if (debug) fprintf(stderr, "A reduction can occur that creates a JSON entry that is a array element\n");
+      aJsonElements[arrayIndex++] = reinterpret_cast<JSON *>(symbolTableReference[stackPointer - 2]);
       stackPointer -= 2;
-      printStack();
-    } else if (stackPointer > 2 && token[stackPointer - 1] == STRING_ && token[stackPointer - 2] == COMMA_) {
-      fprintf(stderr, "A reduction can occurs that creates a STRING that is a array element\n");
-      aStringElements[arrayIndex++] = (char *)symbolTableReference[stackPointer - 1];
+    } else if (stackPointer > 2 && token[stackPointer - 2] == STRING_ && token[stackPointer - 1] == COMMA_) {
+      if (debug) fprintf(stderr, "A reduction can occurs that creates a STRING that is a array element\n");
+      aStringElements[arrayIndex++] = reinterpret_cast<char *>(symbolTableReference[stackPointer - 2]);
       stackPointer -= 2;
-      printStack();
-    } else if (stackPointer > 2 && token[stackPointer - 1] == STRING_ && token[stackPointer - 2] == RIGHT_BRACKET_) {
-      fprintf(stderr, "A reduction can occur that creates a STRING that is a array element\n");
-      aStringElements[arrayIndex++] = (char *)symbolTableReference[stackPointer - 1];
+    } else if (stackPointer > 2 && token[stackPointer - 2] == STRING_ && token[stackPointer - 1] == RIGHT_BRACKET_) {
+      if (debug) fprintf(stderr, "A reduction can occur that creates a STRING that is a array element\n");
+      aStringElements[arrayIndex++] = reinterpret_cast<char *>(symbolTableReference[stackPointer - 2]);
       stackPointer -= 2;
-      printStack();
-    } else if (stackPointer > 2 && token[stackPointer - 1] == NUMBER_ && token[stackPointer - 2] == COMMA_) {
-      fprintf(stderr, "A reduction can occur that creates a STRING that is a array element\n");
-      aNumberElements[arrayIndex++] = (char *)symbolTableReference[stackPointer - 1];
+    } else if (stackPointer > 2 && token[stackPointer - 2] == NUMBER_ && token[stackPointer - 1] == COMMA_) {
+      if (debug) fprintf(stderr, "A reduction can occur that creates a STRING that is a array element\n");
+      aNumberElements[arrayIndex++] = reinterpret_cast<char *>(symbolTableReference[stackPointer - 2]);
       stackPointer -= 2;
-      printStack();
-    } else if (stackPointer > 2 && token[stackPointer - 1] == NUMBER_ && token[stackPointer - 2] == RIGHT_BRACKET_) {
-      fprintf(stderr, "A reduction can occur that creates a STRING that is a array element\n");
-      aNumberElements[arrayIndex++] = (char *)symbolTableReference[stackPointer - 1];
+    } else if (stackPointer > 2 && token[stackPointer - 2] == NUMBER_ && token[stackPointer - 1] == RIGHT_BRACKET_) {
+      if (debug) fprintf(stderr, "A reduction can occur that creates a STRING that is a array element\n");
+      aNumberElements[arrayIndex++] = reinterpret_cast<char *>(symbolTableReference[stackPointer - 2]);
       stackPointer -= 2;
-      printStack();
-    } else if (stackPointer > 2 && token[stackPointer - 1] == BOOLEAN_ && token[stackPointer - 2] == COMMA_) {
-      fprintf(stderr, "A reduction can occur that creates a BOOLEAN that is a array element\n");
-      aBoolElements[arrayIndex++] = strcmp((char *)symbolTableReference[stackPointer - 1], "true") == 0;
+    } else if (stackPointer > 2 && token[stackPointer - 2] == BOOLEAN_ && token[stackPointer - 1] == COMMA_) {
+      if (debug) fprintf(stderr, "A reduction can occur that creates a BOOLEAN that is a array element\n");
+      aBoolElements[arrayIndex++] = strcmp(reinterpret_cast<char *>(symbolTableReference[stackPointer - 2]), "true")
+        == 0;
       stackPointer -= 2;
-      printStack();
-    } else if (stackPointer > 2 && token[stackPointer - 1] == BOOLEAN_ && token[stackPointer - 2] == RIGHT_BRACKET_) {
-      fprintf(stderr, "A reduction can occur that creates a STRING that is a array element\n");
-      aBoolElements[arrayIndex++] = strcmp((char *)symbolTableReference[stackPointer - 1], "true") == 0;
+    } else if (stackPointer > 2 && token[stackPointer - 2] == BOOLEAN_ && token[stackPointer - 1] == RIGHT_BRACKET_) {
+      if (debug) fprintf(stderr, "A reduction can occur that creates a STRING that is a array element\n");
+      aBoolElements[arrayIndex++] = strcmp(reinterpret_cast<char *>(symbolTableReference[stackPointer - 2]), "true")
+        == 0;
       stackPointer -= 2;
-      printStack();
-    } else if (stackPointer > 2 && token[stackPointer - 1] == NULL_ && token[stackPointer - 2] == COMMA_) {
-      fprintf(stderr, "A reduction can occur that creates a BOOLEAN that is a array element\n");
+    } else if (stackPointer > 2 && token[stackPointer - 2] == NULL_ && token[stackPointer - 1] == COMMA_) {
+      if (debug) fprintf(stderr, "A reduction can occur that creates a BOOLEAN that is a array element\n");
       aNullElements[arrayIndex++] = true;
       stackPointer -= 2;
-      printStack();
-    } else if (stackPointer > 2 && token[stackPointer - 1] == NULL_ && token[stackPointer - 2] == RIGHT_BRACKET_) {
-      fprintf(stderr, "A reduction can occur that creates a STRING that is a array element\n");
+    } else if (stackPointer > 2 && token[stackPointer - 2] == NULL_ && token[stackPointer - 1] == RIGHT_BRACKET_) {
+      if (debug) fprintf(stderr, "A reduction can occur that creates a STRING that is a array element\n");
       aNullElements[arrayIndex++] = true;
       stackPointer -= 2;
-      printStack();
     } else {
-      fprintf(stderr, "No reduction occurred\n");
+      if (debug) fprintf(stderr, "No reduction occurred, stack pointer was %d, processing a %s\n", stackPointer,
+              "JSON ARRAY");
     }
   } else {
     fprintf(stderr, "Shouldn't be checking for a reduction if unknown object type\n");
@@ -707,7 +844,7 @@ const char * JSON::printState(STATES state) {
 
 /* ---------------------------------------------------------------------- */
 
-void JSON::print(bool parent=false) {
+void JSON::print(bool parent = false) {
   bool printedSomething = false;
   if (thisIsA == JSON_OBJECT) {
     fprintf(stdout, "{");
@@ -758,7 +895,7 @@ void JSON::print(bool parent=false) {
     std::map<int, bool>::iterator bit;
     std::map<int, bool>::iterator nullit;
     std::map<int, JSON *>::iterator jit;
-    
+
     for (int arrayObjectIndex = 0; arrayObjectIndex < arrayIndex; arrayObjectIndex++) {
       sit = aStringElements.find(arrayObjectIndex);
       if (sit == aStringElements.end()) {
@@ -772,21 +909,21 @@ void JSON::print(bool parent=false) {
               jit = aJsonElements.find(arrayObjectIndex);
               (jit->second)->print();
               printedSomething = true;
-            } else {  //null
+            } else {  // null
               if (printedSomething) fprintf(stdout, ", ");
               fprintf(stdout, "%s", "null");
               printedSomething = true;
             }
-          } else {  //boolean
+          } else {  // boolean
             if (printedSomething) fprintf(stdout, ", ");
             fprintf(stdout, "%s", bit->second ? "true" : "false");
             printedSomething = true;
-          }            
+          }
         } else {  // number
           if (printedSomething) fprintf(stdout, ", ");
           fprintf(stdout, "%s", numit->second);
           printedSomething = true;
-        } 
+        }
       } else {  // string
         if (printedSomething) fprintf(stdout, ", ");
         fprintf(stdout, "%s", sit->second);
@@ -798,7 +935,6 @@ void JSON::print(bool parent=false) {
     } else {
       fprintf(stdout, "]");
     }
-      
   }
 }
 /* ---------------------------------------------------------------------- */
@@ -815,7 +951,7 @@ void JSON::print(bool parent=false) {
 void JSON::initialize(char * jsonText) {
   char buf[1024];
   int result;
-  regcomp(&isAlpha, "[a-zA-Z_&//@]", REG_NOSUB);
+  regcomp(&isAlpha, "[a-zA-Z_&\\/@]", REG_NOSUB);
   regcomp(&isNumber, "[0-9.+-]", REG_NOSUB);
   regcomp(&isLCB, "[\{]", REG_NOSUB);
   regcomp(&isRCB, "[}]", REG_NOSUB);
@@ -954,7 +1090,7 @@ JSON::~JSON() {
           }
         } else {  // free character memory
           free(numit->second);
-        } 
+        }
       } else {  // free character memory
         free(sit->second);
       }
