@@ -794,7 +794,7 @@ void JSON::printStack() {
   fprintf(stdout, "Currently %s in state %s\n", currentlyBuilding, printState(state));
   for (int index = 0; index < stackPointer; index++) {
     if (token[index] == STRING_) {
-      snprintf(display, sizeof(display), "%s", (char *)symbolTableReference[index]);
+      snprintf(display, sizeof(display), "%s", reinterpret_cast<char *>(symbolTableReference[index]));
     } else {
       snprintf(display, sizeof(display), " ");
     }
@@ -1082,11 +1082,11 @@ JSON::~JSON() {
     {
       std::map<std::string, char *>::iterator iterator;
       for (iterator = stringElements.begin(); iterator != stringElements.end(); iterator++) {
-        if (debug) fprintf(stderr, "freeing memory that holds: %s\n", (char *)iterator->second);
+        if (debug) fprintf(stderr, "freeing memory that holds: %s\n", reinterpret_cast<char *>(iterator->second));
         free(iterator->second);
       }
       for (iterator = numberElements.begin(); iterator != numberElements.end(); iterator++) {
-        if (debug) fprintf(stderr, "freeing memory that holds: %s\n", (char *)iterator->second);
+        if (debug) fprintf(stderr, "freeing memory that holds: %s\n", reinterpret_cast<char *>(iterator->second));
         free(iterator->second);
       }
     }
@@ -1117,11 +1117,13 @@ JSON::~JSON() {
             delete(jit->second);  // delete the JSON object being referenced
           }
         } else {  // free character memory
-          if (debug) fprintf(stderr, "array object freeing memory that holds: %s\n", (char *)numit->second);
+          if (debug) fprintf(stderr, "array object freeing memory that holds: %s\n",
+                             reinterpret_cast<char *>(numit->second));
           free(numit->second);
         }
       } else {  // free character memory
-        if (debug) fprintf(stderr, "array object freeing memory that holds: %s\n", (char *)sit->second);
+        if (debug) fprintf(stderr, "array object freeing memory that holds: %s\n",
+                           reinterpret_cast<char *>(sit->second));
         free(sit->second);
       }
     }
