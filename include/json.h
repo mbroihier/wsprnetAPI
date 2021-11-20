@@ -70,6 +70,8 @@ class JSON {
 
   regex_t isAlpha;
   regex_t isNumber;
+  regex_t isAlphaNumber;
+  regex_t isNumberOnly;
   regex_t isLCB;
   regex_t isRCB;
   regex_t isLB;

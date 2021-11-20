@@ -168,7 +168,7 @@ bool JSON::executeAction(ACTIONS currentAction, char currentInput, char * inputB
   }
   case RECORD_KEYWORD: {
     if (debug) fprintf(stderr, "Recording a key word with a %c\n", currentInput);
-    workspace = endKeyWord(workspace);
+    endKeyWord(workspace);  // don't null out workspace yet
     if (strcmp(workspace, "true") == 0) {
       token[stackPointer++] = BOOLEAN_;
     } else if (strcmp(workspace, "false") == 0) {
@@ -177,6 +177,10 @@ bool JSON::executeAction(ACTIONS currentAction, char currentInput, char * inputB
       token[stackPointer++] = NULL_;
     } else {
       fprintf(stderr, "Unrecognized key word %s\n", workspace);
+    }
+    if (workspace) {  // we can now delete unused cstr
+      free(workspace);
+      workspace = 0;
     }
     if (currentInput == ',') {
       symbolTableReference[stackPointer] = NULL;
@@ -316,6 +320,7 @@ char * JSON::getValue(char * name) {
   char * result;
   char * copyOfName = strdup(name);
   bool isArrayIndex = name[0] == '[';
+  if (debug) fprintf(stderr, "strdup addresses (before): %p, size: %d\n", copyOfName, strlen(copyOfName));
   char * index = getFirstIndex(copyOfName);
   if (debug) fprintf(stderr, "first index: %s, remainder: %s\n", index, copyOfName);
   if (isArrayIndex) {
@@ -404,6 +409,17 @@ char * JSON::getValue(char * name) {
       snprintf(result, resultSize, "%s", sit->second);
     }
   }
+  if (debug) fprintf(stderr, "strdup addresses (after): %p, size: %d\n", copyOfName, strlen(copyOfName));
+  if (copyOfName) {
+    free(copyOfName);
+  } else {
+    fprintf(stderr, "getValue failed to free copyOfName which should be allocated\n");
+  }
+  if (index) {
+    free(index);
+  } else {
+    fprintf(stderr, "getValue failed to free index which should be allocated\n");
+  }
   return(result);
 }
 /* ---------------------------------------------------------------------- */
@@ -418,28 +434,28 @@ char * JSON::getValue(char * name) {
 
 /* ---------------------------------------------------------------------- */
 char * JSON::getFirstIndex(char * name) {
-  char * result = reinterpret_cast<char *>(malloc(strlen(name)));
+  char * result = reinterpret_cast<char *>(malloc(strlen(name) + 1));
   char ic[2];
   size_t index = 0;
-  regex_t pattern;
+  size_t nameSize = strlen(name);
+  regex_t * pattern;
   ic[1] = 0;
   if (name[0] == '[') {  // this is an array index
-    pattern = isNumber;
+    pattern = &isNumberOnly;
     index = 1;  // skip this character
   } else {
-    pattern = isAlpha;
+    pattern = &isAlphaNumber;
   }
   size_t indexIndex = 0;
   ic[0] = name[index];
-  while (!regexec(&pattern, ic, 0, 0, 0)) {
-    result[indexIndex++] = name[index];
-    index++;
+  while (!regexec(pattern, ic, 0, 0, 0)) {
+    result[indexIndex++] = name[index++];
     ic[0] = name[index];
   }
   result[indexIndex] = 0;
   index++;
   size_t backFillIndex = 0;
-  while (index < strlen(name)) {
+  while (index < nameSize) {
     name[backFillIndex++] = name[index++];
   }
   name[backFillIndex] = 0;
@@ -774,9 +790,15 @@ void JSON::checkAndReduce() {
 /* ---------------------------------------------------------------------- */
 
 void JSON::printStack() {
+  char display[128];
   fprintf(stdout, "Currently %s in state %s\n", currentlyBuilding, printState(state));
   for (int index = 0; index < stackPointer; index++) {
-    fprintf(stdout, " %4d : %s %p\n", index, printToken(token[index]), symbolTableReference[index]);
+    if (token[index] == STRING_) {
+      snprintf(display, sizeof(display), "%s", (char *)symbolTableReference[index]);
+    } else {
+      snprintf(display, sizeof(display), " ");
+    }
+    fprintf(stdout, " %4d : %s %p - %s\n", index, printToken(token[index]), symbolTableReference[index], display);
   }
 }
 /* ---------------------------------------------------------------------- */
@@ -953,6 +975,8 @@ void JSON::initialize(char * jsonText) {
   int result;
   regcomp(&isAlpha, "[a-zA-Z_&\\/@]", REG_NOSUB);
   regcomp(&isNumber, "[0-9.+-]", REG_NOSUB);
+  regcomp(&isAlphaNumber, "[a-zA-Z_0-9]", REG_NOSUB);
+  regcomp(&isNumberOnly, "[0-9]", REG_NOSUB);
   regcomp(&isLCB, "[\{]", REG_NOSUB);
   regcomp(&isRCB, "[}]", REG_NOSUB);
   regcomp(&isLB, "[\[]", REG_NOSUB);
@@ -1008,6 +1032,7 @@ void JSON::initialize(char * jsonText) {
 JSON::JSON(void) {
   textCopy = strdup("");
   initialize(textCopy);
+  free(textCopy);
 }
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
@@ -1023,6 +1048,7 @@ JSON::JSON(void) {
 JSON::JSON(const char * jsonText) {
   textCopy = strdup(jsonText);
   initialize(textCopy);
+  free(textCopy);
 }
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
@@ -1051,22 +1077,23 @@ JSON::JSON(char * jsonText) {
 /* ---------------------------------------------------------------------- */
 
 JSON::~JSON() {
-  if (textCopy) {
-    free(textCopy);
-  }
+  if (debug) fprintf(stderr, "in JSON destructor\n");
   if (thisIsA == JSON_OBJECT) {
     {
       std::map<std::string, char *>::iterator iterator;
       for (iterator = stringElements.begin(); iterator != stringElements.end(); iterator++) {
+        if (debug) fprintf(stderr, "freeing memory that holds: %s\n", (char *)iterator->second);
         free(iterator->second);
       }
       for (iterator = numberElements.begin(); iterator != numberElements.end(); iterator++) {
+        if (debug) fprintf(stderr, "freeing memory that holds: %s\n", (char *)iterator->second);
         free(iterator->second);
       }
     }
     {
       std::map<std::string, JSON *>::iterator iterator;
       for (iterator = jsonElements.begin(); iterator != jsonElements.end(); iterator++) {
+        if (debug) fprintf(stderr, "deleting an object from an object\n");
         delete(iterator->second);
       }
     }
@@ -1086,12 +1113,15 @@ JSON::~JSON() {
         if (numit == aNumberElements.end()) {
           jit = aJsonElements.find(arrayObjectIndex);
           if (jit != aJsonElements.end()) {
+            if (debug) fprintf(stderr, "deleting an object from an array\n");
             delete(jit->second);  // delete the JSON object being referenced
           }
         } else {  // free character memory
+          if (debug) fprintf(stderr, "array object freeing memory that holds: %s\n", (char *)numit->second);
           free(numit->second);
         }
       } else {  // free character memory
+        if (debug) fprintf(stderr, "array object freeing memory that holds: %s\n", (char *)sit->second);
         free(sit->second);
       }
     }
@@ -1101,5 +1131,6 @@ JSON::~JSON() {
     aNullElements.clear();
     aJsonElements.clear();
   }
+  if (debug) fprintf(stderr, "done with JSON destructor\n");
 }
 /* ---------------------------------------------------------------------- */

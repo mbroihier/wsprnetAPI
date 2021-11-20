@@ -34,7 +34,6 @@ class wsprnetAPI {
   char *token;
   char *cookie;
   char *XCSRFToken;
-  char * jsonFind(const char * field, char * buffer, size_t bufferLength);
   char loginID[128];
   char password[128];
   void sendQuery(char * endPointWithFilters);

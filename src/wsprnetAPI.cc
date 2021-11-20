@@ -24,8 +24,6 @@ static struct option longOpts[] = {
   { NULL, 0, NULL, 0 }
 };
 
-static const char * testMessage = "{\"sessid\":\"H0Urg_saXBwHDcgj8tepvnndDL6YNCgSa_uNcBn5IuA\",\"session_name\":\"SSESSe706824a3745c30a9d4279773b743146\",\"token\":\"ZBZOaILjprl8bI38G48GQuindKmPQmJewPAP_HWYNPo\",\"user\":{\"uid\":\"158595\",\"name\":\"KG5YJE\",\"mail\":\"mbroihier@yahoo.com\",\"theme\":\"\",\"signature\":\"\",\"signature_format\":\"1\",\"created\":\"1629580233\",\"access\":\"1635799992\",\"login\":1635803922,\"status\":\"1\",\"timezone\":\"UTC\",\"language\":\"\",\"picture\":null,\"data\":false,\"roles\":{\"2\":\"authenticated user\"},\"profile_firstname\":\"Mark\",\"profile_qth\":\"Plano, TX/USA\",\"profile_grid\":\"EM13\",\"profile_station\":\"rtlsdr dipole\",\"profile_callsign\":\"KG5YJE\"}}";
-
 static char payload[1024*16*10];
 static size_t payloadSize;
 static size_t page = 0;
@@ -52,10 +50,10 @@ size_t static getInfo(char *incoming,
   size_t bufferLength = *bufferLengthPtr;
   if (debug) fprintf(stderr, "Incoming data\n");
   size_t completeReturnBufferSize = size * blocks;
-  fprintf(stderr, "There is %d bytes of receive buffer space and the servers is sending %d bytes\n",
+  if (debug) fprintf(stderr, "There is %d bytes of receive buffer space and the servers is sending %d bytes\n",
           bufferLength, completeReturnBufferSize);
   if (completeReturnBufferSize > bufferLength) {
-    fprintf(stderr, "Abnormal termination of getInfo\n");
+    fprintf(stderr, "Abnormal termination of getInfo - not enough API buffer space\n");
     return 0;
   }
   size_t len = 0;
@@ -70,44 +68,9 @@ size_t static getInfo(char *incoming,
     page++;
     if (debug) fprintf(stderr, "Got:\n %s\n", info);
   } else {
-    if (debug) fprintf(stderr, "Error in received data - data received exceeds allocated buffer space\n");
+    fprintf(stderr, "Error in received data - data received exceeds allocated buffer space\n");
   }
   return len;
-}
-/* ---------------------------------------------------------------------- */
-/* ---------------------------------------------------------------------- */
-/*
- *      jsonFind.cc -- execute the commands to log into the WSPRNET API
- *
- *      Copyright (C) 2021
- *          Mark Broihier
- *
- */
-
-/* ---------------------------------------------------------------------- */
-char * wsprnetAPI::jsonFind(const char * fieldName, char * buffer, size_t bufferLength) {
-  const int FIELD_SIZE = 1024;
-  char * lastValidLocation = buffer + bufferLength - 1;
-  char * location = strstr(buffer, fieldName);
-  char * value = 0;
-  size_t destination = 0;
-  if (location) {
-    value = reinterpret_cast<char *>(malloc(FIELD_SIZE));
-    location += strlen(fieldName);
-    while (*location != '"' && location < lastValidLocation) location++;
-    if (*location ==  '"') location++;
-    while (*location != '"' && location < lastValidLocation) {
-      value[destination++] = *location++;
-      if (destination >= (FIELD_SIZE - 1)) {
-        fprintf(stderr, "Field too large to fit in buffer - terminating and deleting allocated space\n");
-        free(value);
-        value = 0;
-        break;
-      }
-    }
-    if (value) value[destination] = 0;
-  }
-  return value;
 }
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
@@ -135,7 +98,7 @@ void wsprnetAPI::login() {
   payloadSize = sizeof(payload);
   char loginMessage[1024];
   snprintf(loginMessage, sizeof(loginMessage), " { \"name\":\"%s\", \"pass\":\"%s\" }\n", loginID, password);
-  fprintf(stderr, "size of receive buffer is %d bytes\n", payloadSize);
+  if (debug) fprintf(stderr, "size of receive buffer is %d bytes\n", payloadSize);
   curl_easy_setopt(sendPost, CURLOPT_WRITEDATA, parameters);
   curl_easy_setopt(sendPost, CURLOPT_POSTFIELDS, loginMessage);
   curl_easy_setopt(sendPost, CURLOPT_POSTFIELDSIZE, (int64_t) strlen(loginMessage));
@@ -147,29 +110,40 @@ void wsprnetAPI::login() {
   if (result) {
     fprintf(stderr, "Curlcode: %d\n", result);
   }
-  fprintf(stderr, "Message being searched:\n %s\n", payload);
-  sessionName = jsonFind("\"session_name\":", payload, strlen(payload));
+  if (debug) fprintf(stderr, "Message being searched:\n %s\n", payload);
+  JSON * login = new JSON(payload);
+  sessionName = login->getValue("session_name");
   if (sessionName) {
-    fprintf(stderr, "sessionName is: %s\n", sessionName);
+    if (debug) fprintf(stderr, "sessionName is: %s\n", sessionName);
+  } else {
+    fprintf(stderr, "session_name was not returned with login request\n");
+    exit(-1);
   }
-  sessionID = jsonFind("\"sessid\":", payload, strlen(payload));
+  sessionID = login->getValue("sessid");
   if (sessionID) {
-    fprintf(stderr, "sessionID is: %s\n", sessionID);
+    if (debug) fprintf(stderr, "sessionID is: %s\n", sessionID);
+  } else {
+    fprintf(stderr, "sessionid was not returned with login request\n");
+    exit(-1);
   }
-  token = jsonFind("\"token\":", payload, strlen(payload));
+  token = login->getValue("token");
   if (token) {
-    fprintf(stderr, "token is: %s\n", token);
+    if (debug) fprintf(stderr, "token is: %s\n", token);
+  } else {
+    fprintf(stderr, "token was not returned with login request\n");
+    exit(-1);
   }
+  delete(login);
   size_t cookieSize = strlen(sessionName) + strlen(sessionID) + 128;
   cookie = reinterpret_cast<char *>(malloc(cookieSize));
   memset(cookie, 0, cookieSize);
   snprintf(cookie, cookieSize, "Cookie: %s=%s", sessionName, sessionID);
-  fprintf(stderr, "Cookie construction: %s\n", cookie);
+  if (debug) fprintf(stderr, "Cookie construction: %s\n", cookie);
   size_t XCSRFTokenSize = strlen(token) + 128;
   XCSRFToken = reinterpret_cast<char *>(malloc(XCSRFTokenSize));
   memset(XCSRFToken, 0, XCSRFTokenSize);
   snprintf(XCSRFToken, XCSRFTokenSize, "X-CSRF-Token: %s", token);
-  fprintf(stderr, "X-CSRF-Token construction: %s\n", XCSRFToken);
+  if (debug) fprintf(stderr, "X-CSRF-Token construction: %s\n", XCSRFToken);
   curl_slist_free_all(list);
   curl_easy_cleanup(sendPost);
 }
@@ -208,7 +182,7 @@ void wsprnetAPI::querySpots(char * filters) {
   memset(command, 0, sizeof(command));
   snprintf(command, sizeof(command), "%s%s", urlQuerySpots, filters);
   sendQuery(command);
-  fprintf(stderr, "Spots returned:\n %s\n", payload);
+  if (debug) fprintf(stderr, "Spots returned:\n %s\n", payload);
 }
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
@@ -245,7 +219,7 @@ void wsprnetAPI::queryPaths(char * filters) {
   memset(command, 0, sizeof(command));
   snprintf(command, sizeof(command), "%s%s", urlQueryPaths, filters);
   sendQuery(command);
-  fprintf(stderr, "Paths returned:\n %s\n", payload);
+  if (debug) fprintf(stderr, "Paths returned:\n %s\n", payload);
 }
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
@@ -282,7 +256,7 @@ void wsprnetAPI::queryStatus(char * filters) {
   memset(command, 0, sizeof(command));
   snprintf(command, sizeof(command), "%s%s", urlQueryStatus, filters);
   sendQuery(command);
-  fprintf(stderr, "Status returned:\n %s\n", payload);
+  if (debug) fprintf(stderr, "Status returned:\n %s\n", payload);
 }
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
@@ -355,7 +329,7 @@ void wsprnetAPI::logout() {
   if (result) {
     fprintf(stderr, "Curlcode: %d\n", result);
   }
-  fprintf(stderr, "Logout message returned:\n %s\n", payload);
+  if (debug) fprintf(stderr, "Logout message returned:\n %s\n", payload);
   curl_slist_free_all(list);
   curl_easy_cleanup(sendPost);
 }
@@ -427,11 +401,13 @@ wsprnetAPI::wsprnetAPI() {
 /* ---------------------------------------------------------------------- */
 
 wsprnetAPI::~wsprnetAPI() {
+  if (debug) fprintf(stderr, "in wsprnetAPI destructor\n");
   if (sessionID) free(sessionID);
   if (sessionName) free(sessionName);
   if (token) free(token);
   if (cookie) free(cookie);
   if (XCSRFToken) free(XCSRFToken);
+  if (debug) fprintf(stderr, "done with wsprnetAPI destructor\n");
 }
 /* ---------------------------------------------------------------------- */
 
@@ -440,7 +416,6 @@ int main(int argc, char *argv[]) {
   int c;
 
   memset(payload, 0, sizeof(payload));
-  memcpy(payload, testMessage, strlen(testMessage));
 
   fprintf(stdout, "wspnetAPI VERSION %s\n", STR_VALUE(wsprnetAPI_VERSION_NUMBER));
   if (argc > 1) {
@@ -461,14 +436,45 @@ int main(int argc, char *argv[]) {
   }
 
   wsprnet.login();
-  wsprnet.queryPaths("band=14&callsign=kg5yje&minutes=60&exclude_special=0");
-  wsprnet.queryStatus("band=14&callsign=kg5yje&minutes=60&exclude_special=0");
-  wsprnet.querySpots("band=14&reporter=kg5yje&minutes=60&exclude_special=0");
+  wsprnet.querySpots("band=14&reporter=kg5yje&minutes=1440&exclude_special=0");
+  JSON * queryReplyMessage1 = new JSON(payload);
+  fprintf(stdout, "spots received in last day:\n");
+  queryReplyMessage1->print(true);
+  char * callSign = 0;
+  char spotQuery[128];
+  char statusQuery[128];
+  size_t index = 0;
+  bool notDone = true;
+  fprintf(stdout, "reported status of each spot:\n");
+  do {
+    snprintf(spotQuery, sizeof(spotQuery), "[%d]CallSign", index);
+    callSign = queryReplyMessage1->getValue(spotQuery);
+    if (callSign) {
+      fprintf(stdout, "Call sign at element %d is: %s\n", index++, callSign);
+      snprintf(statusQuery, sizeof(statusQuery), "callsign=%s", callSign);
+      wsprnet.queryStatus(statusQuery);
+      JSON * queryReplyMessage2 = new JSON(payload);
+      fprintf(stdout, "status of %s:\n", callSign);
+      queryReplyMessage2->print(true);
+      free(callSign);
+      callSign = 0;
+      delete(queryReplyMessage2);
+    } else {
+      notDone = false;
+    }
+  } while (notDone);
+  delete(queryReplyMessage1);
+  wsprnet.queryStatus("band=14");
+  queryReplyMessage1 = new JSON(payload);
+  fprintf(stdout, "lastest status reports for band 14:\n");
+  queryReplyMessage1->print(true);
+  delete(queryReplyMessage1);
   wsprnet.logout();
-  JSON * logoutReplyMessage = new(JSON);
-  logoutReplyMessage->parse(payload);
-  logoutReplyMessage->printStack();
-
+  queryReplyMessage1 = new JSON(payload);
+  fprintf(stdout, "logout reply:\n");
+  queryReplyMessage1->print(true);
+  delete(queryReplyMessage1);
+  fprintf(stdout, "wsprnetAPI test main done\n");
   return 0;
 }
 /* ---------------------------------------------------------------------- */
