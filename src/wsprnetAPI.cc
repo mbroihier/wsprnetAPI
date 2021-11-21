@@ -464,6 +464,11 @@ int main(int argc, char *argv[]) {
     }
   } while (notDone);
   delete(queryReplyMessage1);
+  wsprnet.queryPaths("callsign=kg5yje&minutes=1440&band=14");
+  queryReplyMessage1 = new JSON(payload);
+  fprintf(stdout, "lastest paths that include call sign kg5yje:\n");
+  queryReplyMessage1->print(true);
+  delete(queryReplyMessage1);
   wsprnet.queryStatus("band=14");
   queryReplyMessage1 = new JSON(payload);
   fprintf(stdout, "lastest status reports for band 14:\n");
