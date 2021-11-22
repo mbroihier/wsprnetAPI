@@ -6,28 +6,8 @@
  *
  */
 /* ---------------------------------------------------------------------- */
-#include <dirent.h>
-#include <getopt.h>
-#include <unistd.h>
-#include "wsprnetAPIConfig.h"
 #include "wsprnetAPI.h"
 /* ---------------------------------------------------------------------- */
-
-
-static const char USAGE_STR[] = "\n"
-        "Usage: %s \n"
-        "  -h                       : help\n"
-        "  --help                   : help\n";
-
-static struct option longOpts[] = {
-  {"help", no_argument, NULL, 1},
-  { NULL, 0, NULL, 0 }
-};
-
-static char payload[1024*16*10];
-static size_t payloadSize;
-static size_t page = 0;
-
 
 /* ---------------------------------------------------------------------- */
 /*
@@ -38,7 +18,6 @@ static size_t page = 0;
  *
  */
 /* ---------------------------------------------------------------------- */
-
 
 size_t static getInfo(char *incoming,
                           size_t size, size_t blocks, void *myPointer) {
@@ -81,7 +60,6 @@ size_t static getInfo(char *incoming,
  *          Mark Broihier
  *
  */
-
 /* ---------------------------------------------------------------------- */
 void wsprnetAPI::login() {
   page = 0;
@@ -157,7 +135,6 @@ void wsprnetAPI::login() {
  *          Mark Broihier
  *
  */
-
 /* ---------------------------------------------------------------------- */
 void wsprnetAPI::querySpots(const char * filters) {
   char volatileFilters[128];
@@ -175,7 +152,6 @@ void wsprnetAPI::querySpots(const char * filters) {
  *          Mark Broihier
  *
  */
-
 /* ---------------------------------------------------------------------- */
 void wsprnetAPI::querySpots(char * filters) {
   char command[1024];
@@ -194,7 +170,6 @@ void wsprnetAPI::querySpots(char * filters) {
  *          Mark Broihier
  *
  */
-
 /* ---------------------------------------------------------------------- */
 void wsprnetAPI::queryPaths(const char * filters) {
   char volatileFilters[128];
@@ -212,7 +187,6 @@ void wsprnetAPI::queryPaths(const char * filters) {
  *          Mark Broihier
  *
  */
-
 /* ---------------------------------------------------------------------- */
 void wsprnetAPI::queryPaths(char * filters) {
   char command[1024];
@@ -231,7 +205,6 @@ void wsprnetAPI::queryPaths(char * filters) {
  *          Mark Broihier
  *
  */
-
 /* ---------------------------------------------------------------------- */
 void wsprnetAPI::queryStatus(const char * filters) {
   char volatileFilters[128];
@@ -249,7 +222,6 @@ void wsprnetAPI::queryStatus(const char * filters) {
  *          Mark Broihier
  *
  */
-
 /* ---------------------------------------------------------------------- */
 void wsprnetAPI::queryStatus(char * filters) {
   char command[1024];
@@ -268,7 +240,6 @@ void wsprnetAPI::queryStatus(char * filters) {
  *          Mark Broihier
  *
  */
-
 /* ---------------------------------------------------------------------- */
 void wsprnetAPI::sendQuery(char * endPointWithFilters) {
   page = 0;
@@ -304,7 +275,6 @@ void wsprnetAPI::sendQuery(char * endPointWithFilters) {
  *          Mark Broihier
  *
  */
-
 /* ---------------------------------------------------------------------- */
 void wsprnetAPI::logout() {
   page = 0;
@@ -342,7 +312,6 @@ void wsprnetAPI::logout() {
  *          Mark Broihier
  *
  */
-
 /* ---------------------------------------------------------------------- */
 
 wsprnetAPI::wsprnetAPI() {
@@ -410,7 +379,7 @@ wsprnetAPI::~wsprnetAPI() {
   if (debug) fprintf(stderr, "done with wsprnetAPI destructor\n");
 }
 /* ---------------------------------------------------------------------- */
-
+#ifdef NOTSTANDALONE
 int main(int argc, char *argv[]) {
   wsprnetAPI wsprnet;
   int c;
@@ -482,4 +451,5 @@ int main(int argc, char *argv[]) {
   fprintf(stdout, "wsprnetAPI test main done\n");
   return 0;
 }
+#endif
 /* ---------------------------------------------------------------------- */
