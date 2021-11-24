@@ -48,9 +48,6 @@ extern size_t page;
 class wsprnetAPI {
  private:
   CURL *sendPost;
-  char *sessionID;
-  char *sessionName;
-  char *token;
   char *cookie;
   char *XCSRFToken;
   char loginID[128];

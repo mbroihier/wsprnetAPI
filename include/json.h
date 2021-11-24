@@ -117,8 +117,8 @@ class JSON {
   const char * printState(STATES state);
   void printStack(void);
   void print(bool parent);
-  char * getValue(const char * name);
-  char * getValue(char * name);
+  const char * getValue(const char * name);
+  const char * getValue(char * name);
   bool setValue(const char * name, char * value);
   JSON();
   explicit JSON(char * jsonText);

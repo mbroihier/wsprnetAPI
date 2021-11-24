@@ -297,8 +297,8 @@ bool JSON::parse(char * inputBuffer) {
  */
 
 /* ---------------------------------------------------------------------- */
-char * JSON::getValue(const char * name) {
-  char * result;
+const char * JSON::getValue(const char * name) {
+  const char * result;
   char * copyOfName = strdup(name);
   result = getValue(copyOfName);
   free(copyOfName);
@@ -315,9 +315,9 @@ char * JSON::getValue(const char * name) {
  */
 
 /* ---------------------------------------------------------------------- */
-char * JSON::getValue(char * name) {
+const char * JSON::getValue(char * name) {
   const size_t resultSize = 128;
-  char * result;
+  const char * result;
   char * copyOfName = strdup(name);
   bool isArrayIndex = name[0] == '[';
   if (debug) fprintf(stderr, "strdup addresses (before): %p, size: %d\n", copyOfName, strlen(copyOfName));
@@ -348,24 +348,20 @@ char * JSON::getValue(char * name) {
               result = (jit->second)->getValue(copyOfName);
             }
           } else {  // is null
-            result = reinterpret_cast<char *>(malloc(resultSize));
-            memset(result, 0, resultSize);
-            snprintf(result, resultSize, "null");
+            result = "null";
           }
         } else {  // is boolean
-          result = reinterpret_cast<char *>(malloc(resultSize));
-          memset(result, 0, resultSize);
-          snprintf(result, resultSize, "%s", bit->second ? "true" : "false");
+          if (bit->second) {
+            result = "true";
+          } else {
+            result ="false";
+          }
         }
       } else {  // is number
-        result = reinterpret_cast<char *>(malloc(resultSize));
-        memset(result, 0, resultSize);
-        snprintf(result, resultSize, "%s", numit->second);
+        result = numit->second;
       }
     } else {  // is string
-      result = reinterpret_cast<char *>(malloc(resultSize));
-      memset(result, 0, resultSize);
-      snprintf(result, resultSize, "%s", sit->second);
+      result = sit->second;
     }
   } else {  // JSON Object
     std::map<std::string, char*>::iterator sit;
@@ -389,24 +385,20 @@ char * JSON::getValue(char * name) {
               result = (jit->second)->getValue(copyOfName);
             }
           } else {  // is null
-            result = reinterpret_cast<char *>(malloc(resultSize));
-            memset(result, 0, resultSize);
-            snprintf(result, resultSize, "null");
+            result = "null";
           }
         } else {  // is boolean
-          result = reinterpret_cast<char *>(malloc(resultSize));
-          memset(result, 0, resultSize);
-          snprintf(result, resultSize, "%s", bit->second ? "true" : "false");
+          if (bit->second) {
+            result = "true";
+          } else {
+            result = "false";
+          }
         }
       } else {  // is number
-        result = reinterpret_cast<char *>(malloc(resultSize));
-        memset(result, 0, resultSize);
-        snprintf(result, resultSize, "%s", numit->second);
+        result = numit->second;
       }
     } else {  // is string
-      result = reinterpret_cast<char *>(malloc(resultSize));
-      memset(result, 0, resultSize);
-      snprintf(result, resultSize, "%s", sit->second);
+      result = sit->second;
     }
   }
   if (debug) fprintf(stderr, "strdup addresses (after): %p, size: %d\n", copyOfName, strlen(copyOfName));

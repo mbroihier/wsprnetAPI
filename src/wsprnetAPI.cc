@@ -94,28 +94,27 @@ void wsprnetAPI::login() {
   }
   if (debug) fprintf(stderr, "Message being searched:\n %s\n", payload);
   JSON * login = new JSON(payload);
-  sessionName = login->getValue("session_name");
+  const char * sessionName = login->getValue("session_name");
   if (sessionName) {
     if (debug) fprintf(stderr, "sessionName is: %s\n", sessionName);
   } else {
     fprintf(stderr, "session_name was not returned with login request\n");
     exit(-1);
   }
-  sessionID = login->getValue("sessid");
+  const char * sessionID = login->getValue("sessid");
   if (sessionID) {
     if (debug) fprintf(stderr, "sessionID is: %s\n", sessionID);
   } else {
     fprintf(stderr, "sessionid was not returned with login request\n");
     exit(-1);
   }
-  token = login->getValue("token");
+  const char * token = login->getValue("token");
   if (token) {
     if (debug) fprintf(stderr, "token is: %s\n", token);
   } else {
     fprintf(stderr, "token was not returned with login request\n");
     exit(-1);
   }
-  delete(login);
   size_t cookieSize = strlen(sessionName) + strlen(sessionID) + 128;
   cookie = reinterpret_cast<char *>(malloc(cookieSize));
   memset(cookie, 0, cookieSize);
@@ -128,6 +127,7 @@ void wsprnetAPI::login() {
   if (debug) fprintf(stderr, "X-CSRF-Token construction: %s\n", XCSRFToken);
   curl_slist_free_all(list);
   curl_easy_cleanup(sendPost);
+  delete(login);
 }
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
@@ -356,9 +356,6 @@ wsprnetAPI::wsprnetAPI() {
   if (debug) {
     fprintf(stderr, "This curl version is: %8.8x\n", versionData->version_num);
   }
-  sessionID = 0;
-  sessionName = 0;
-  token = 0;
   XCSRFToken = 0;
   cookie = 0;
 }
@@ -375,9 +372,6 @@ wsprnetAPI::wsprnetAPI() {
 
 wsprnetAPI::~wsprnetAPI() {
   if (debug) fprintf(stderr, "in wsprnetAPI destructor\n");
-  if (sessionID) free(sessionID);
-  if (sessionName) free(sessionName);
-  if (token) free(token);
   if (cookie) free(cookie);
   if (XCSRFToken) free(XCSRFToken);
   if (debug) fprintf(stderr, "done with wsprnetAPI destructor\n");
@@ -413,7 +407,6 @@ int main(int argc, char *argv[]) {
   JSON * queryReplyMessage1 = new JSON(payload);
   fprintf(stdout, "spots received in last day:\n");
   queryReplyMessage1->print(true);
-  char * callSign = 0;
   char spotQuery[128];
   char statusQuery[128];
   size_t index = 0;
@@ -421,16 +414,14 @@ int main(int argc, char *argv[]) {
   fprintf(stdout, "reported status of each spot:\n");
   do {
     snprintf(spotQuery, sizeof(spotQuery), "[%d]CallSign", index);
-    callSign = queryReplyMessage1->getValue(spotQuery);
+    const char *callSign = queryReplyMessage1->getValue(spotQuery);
     if (callSign) {
       fprintf(stdout, "Call sign at element %d is: %s\n", index++, callSign);
-      snprintf(statusQuery, sizeof(statusQuery), "callsign=%s", callSign);
+      snprintf(statusQuery, sizeof(statusQuery), "callsign=%s&band=14&minutes=1440", callSign);
       wsprnet.queryStatus(statusQuery);
       JSON * queryReplyMessage2 = new JSON(payload);
       fprintf(stdout, "status of %s:\n", callSign);
       queryReplyMessage2->print(true);
-      free(callSign);
-      callSign = 0;
       delete(queryReplyMessage2);
     } else {
       notDone = false;
