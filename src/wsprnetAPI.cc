@@ -7,6 +7,10 @@
  */
 /* ---------------------------------------------------------------------- */
 #include "wsprnetAPI.h"
+char payload[1024*16*10];
+size_t payloadSize;
+size_t page = 0;
+
 /* ---------------------------------------------------------------------- */
 
 /* ---------------------------------------------------------------------- */
@@ -379,7 +383,7 @@ wsprnetAPI::~wsprnetAPI() {
   if (debug) fprintf(stderr, "done with wsprnetAPI destructor\n");
 }
 /* ---------------------------------------------------------------------- */
-#ifdef NOTSTANDALONE
+#ifdef INCLUDETESTMAIN
 int main(int argc, char *argv[]) {
   wsprnetAPI wsprnet;
   int c;

@@ -41,10 +41,9 @@ static struct option longOpts[] = {
   { NULL, 0, NULL, 0 }
 };
 
-static char payload[1024*16*10];
-
-static size_t payloadSize;
-static size_t page = 0;
+extern char payload[1024*16*10];
+extern size_t payloadSize;
+extern size_t page;
 
 class wsprnetAPI {
  private:
