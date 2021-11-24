@@ -259,10 +259,10 @@ void wsprnetAPI::sendQuery(char * endPointWithFilters) {
   parameters[0] = payload;
   parameters[1] = &payloadSize;
   payloadSize = sizeof(payload);
-  const char body[] = "{}";
+  const char body[] = "{}\n";
   curl_easy_setopt(sendPost, CURLOPT_WRITEDATA, parameters);
   curl_easy_setopt(sendPost, CURLOPT_POSTFIELDS, body);
-  curl_easy_setopt(sendPost, CURLOPT_POSTFIELDSIZE, (int64_t) sizeof(body));
+  curl_easy_setopt(sendPost, CURLOPT_POSTFIELDSIZE, (int64_t) strlen(body));
   CURLcode result = curl_easy_perform(sendPost);
   if (result) {
     fprintf(stderr, "Curlcode: %d\n", result);
@@ -295,7 +295,7 @@ void wsprnetAPI::logout() {
   parameters[0] = payload;
   parameters[1] = &payloadSize;
   payloadSize = sizeof(payload);
-  static const char body[] = " { }\n";
+  static const char body[] = "{}\n";
   curl_easy_setopt(sendPost, CURLOPT_WRITEDATA, parameters);
   curl_easy_setopt(sendPost, CURLOPT_POSTFIELDS, body);
   curl_easy_setopt(sendPost, CURLOPT_POSTFIELDSIZE, (int64_t) strlen(body));
