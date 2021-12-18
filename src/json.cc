@@ -456,20 +456,6 @@ char * JSON::getFirstIndex(char * name) {
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
 /*
- *      setValue.cc -- set the JSON object value pointed to by name
- *
- *      Copyright (C) 2021
- *          Mark Broihier
- *
- */
-
-/* ---------------------------------------------------------------------- */
-bool JSON::setValue(const char * name, char * value) {
-  return(true);
-}
-/* ---------------------------------------------------------------------- */
-/* ---------------------------------------------------------------------- */
-/*
  *      startString.cc -- do processing to start the construction of
  *                        a string
  *

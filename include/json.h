@@ -119,7 +119,6 @@ class JSON {
   void print(bool parent);
   const char * getValue(const char * name);
   const char * getValue(char * name);
-  bool setValue(const char * name, char * value);
   JSON();
   explicit JSON(char * jsonText);
   explicit JSON(const char * jsonText);
